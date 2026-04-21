@@ -2,9 +2,7 @@ version: "3.9"
 
 services:
   frontend:
-    build:
-      context: .
-      dockerfile: FEdockerfile
+    image: aditya090/fuzon:frontend-latest
     container_name: frontend
     ports:
       - "8080:80"
@@ -14,8 +12,7 @@ services:
       - alpha
 
   backend:
-    build:
-      context: ./backend
+    image: aditya090/fuzon:backend-latest
     container_name: backend
     ports:
       - "8000:8000"
@@ -54,11 +51,22 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning
       - ./grafana/dashboards:/var/lib/grafana/dashboards
     depends_on:
       - prometheus
+    networks:
+      - alpha
+
+  jenkins:
+    image: jenkins/jenkins:lts
+    container_name: jenkins
+    ports:
+      - "8088:8080"
+    volumes:
+#      - jenkins-data:/var/jenkins_home
+      - /mnt/data/jenkins:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - alpha
 
@@ -70,3 +78,4 @@ volumes:
   backend-data:
   prometheus-data:
   grafana-data:
+  jenkins-data:
