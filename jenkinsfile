@@ -1,0 +1,67 @@
+pipeline {
+    agent any
+
+    environment {
+        GIT_REPO = 'https://github.com/pal-aditya/fusionpact-devops-challenge.git'
+        DOCKER_CREDS = 'Docker'
+        BACKEND_IMAGE = 'aditya090/fuzon:backend-latest'
+        FRONTEND_IMAGE = 'aditya090/fuzon:frontend-latest'
+    }
+
+    stages {
+
+
+        stage('Cleanup') {
+            steps {
+                cleanWs()
+            }
+        }
+
+        stage('Checkout') {
+            steps {
+                git branch: 'main', credentialsId: 'gitpat', url: "${GIT_REPO}"
+            }
+        }
+
+        stage('Build Images') {
+            steps {
+                sh '''
+                docker build -t $BACKEND_IMAGE ./backend
+                docker build -t $FRONTEND_IMAGE -f FEdockerfile .
+                '''
+            }
+        }
+
+        stage('Docker Login') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: "${DOCKER_CREDS}",
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
+                )]) {
+                    sh '''
+                    echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                    '''
+                }
+            }
+        }
+
+        stage('Push Images') {
+            steps {
+                sh '''
+                docker push $BACKEND_IMAGE
+                docker push $FRONTEND_IMAGE
+                '''
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                sh '''
+                docker compose pull
+                docker compose up -d
+                '''
+            }
+        }
+    }
+}

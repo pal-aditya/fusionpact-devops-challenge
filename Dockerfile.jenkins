@@ -2,12 +2,28 @@ FROM jenkins/jenkins:lts
 
 USER root
 
-# Install Docker CLI
+# Install dependencies and Docker's GPG key
 RUN apt-get update && \
-    apt-get install -y docker.io && \
-    apt-get clean
+    apt-get install -y ca-certificates curl && \
+    install -m 0755 -d /etc/apt/keyrings && \
+    curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc && \
+    chmod a+r /etc/apt/keyrings/docker.asc
 
-# Add jenkins user to docker group
-RUN usermod -aG docker jenkins
+# Add Docker repository
+RUN echo \
+    "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] \
+    https://download.docker.com/linux/debian \
+    $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+    tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# Install Docker CLI and Compose plugin
+RUN apt-get update && \
+    apt-get install -y docker-ce-cli docker-compose-plugin && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Create docker group and add jenkins user
+RUN groupadd docker && \
+    usermod -aG docker jenkins
 
 USER jenkins
